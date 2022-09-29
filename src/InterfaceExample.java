@@ -1,5 +1,6 @@
 import java.time.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 interface OperateCar {
     String brandName = "BMW"; // implicitly public, static and final
@@ -236,6 +237,8 @@ interface CardInterface extends Comparable<CardInterface> {
         }
     }
 
+    public String toString();
+
     public CardInterface.Suit getSuit();
 
     public CardInterface.Rank getRank();
@@ -259,8 +262,10 @@ interface DeckInterface {
     void sort();
 
     void sort(Comparator<CardInterface> cardComparator);
-//    String deckToString();
-//    Map<Integer, Deck> deal(int players, int numberOfCards) throws IllegalArgumentException;
+
+    String deckToString();
+
+    Map<Integer, DeckInterface> deal(int players, int numberOfCards) throws IllegalArgumentException;
 }
 
 class PlayingCard implements CardInterface {
@@ -359,6 +364,40 @@ class StandardDeck implements DeckInterface {
 
     public void sort(Comparator<CardInterface> cardComparator) {
         Collections.sort(this.entireDeck, cardComparator);
+    }
+
+    public String deckToString() {
+        return this.entireDeck
+                .stream()
+                .map(CardInterface::toString)
+                .collect(Collectors.joining("\n"));
+    }
+
+    public Map<Integer, DeckInterface> deal(int players, int numberOfCards) throws IllegalArgumentException {
+        int cardsDealt = players * numberOfCards;
+        int deckSize = this.entireDeck.size();
+
+        if (cardsDealt > deckSize) {
+            throw new IllegalArgumentException("The number of cards dealt cannot be more than the size of deck");
+        }
+
+        Map<Integer, List<CardInterface>> dealtDeck = this.entireDeck
+                .stream()
+                .collect(Collectors.groupingBy(card -> {
+                    int cardIndex = this.entireDeck.indexOf(card);
+                    return cardIndex >= cardsDealt ? players + 1 : (cardIndex % players) + 1;
+                }));
+
+        // Convert Map<Integer, List<CardInterface>> to Map<Integer, Deck>
+        Map<Integer, DeckInterface> mapToReturn = new HashMap<>();
+
+        for (int i = 1; i <= (players + 1); i++) {
+            DeckInterface currentDeck = getDeckFactory();
+            currentDeck.addCards(dealtDeck.get(i));
+            mapToReturn.put(i, currentDeck);
+        }
+
+        return mapToReturn;
     }
 }
 
